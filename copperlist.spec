@@ -1,5 +1,5 @@
 Name:           copperlist
-Version:        0.1.2
+Version:        0.1.3
 Release:        1%{?dist}
 %global debug_package %{nil}
 Summary:        Copper-style trigger-list sequencer for the i915 BLT ring
@@ -38,11 +38,11 @@ Built on thelevel's chipmem and blit, vendored byte-identical.
 
 
 %check
-%if 0%{?copr_projectname:1}
-echo "SKIP: Copr mock has no /dev/dri render node; audit test requires one"
-%else
-make check
-%endif
+if [ -e /dev/dri/renderD128 ]; then
+    make check
+else
+    echo "SKIP: no /dev/dri/renderD128 in buildroot; audit test requires a render node"
+fi
 
 
 %install
@@ -58,6 +58,12 @@ install -m 0644 include/copper.h %{buildroot}%{_includedir}/copperlist/
 
 
 %changelog
+* Wed Nov 11 2026 Americo Simoes <amexsimoes@gmail.com> - 0.1.3-1
+- %check tests for /dev/dri/renderD128 instead of the Copr macro.
+  The old guard fired in Copr but not in fedora-review's mock, where
+  the GPU test ran and failed. The honest condition is "can this
+  buildroot run the test," not "is this Copr."
+
 * Wed Nov 11 2026 Americo Simoes <amexsimoes@gmail.com> - 0.1.2-1
 - Source0 to /archive/ (Copr cannot fetch a release asset that was
   never uploaded; the tag-only tarball resolves from the tag alone).
