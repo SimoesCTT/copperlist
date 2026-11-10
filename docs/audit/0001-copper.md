@@ -1,3 +1,5 @@
+<!-- status: CLOSED. Every falsifiable claim measured. See 'Audit status: CLOSED' at the end. -->
+
 # Audit 0001 — copper: Copper-style trigger-list sequencer
 
 Status: AUDIT PHASE. No src/ code until the measurement below runs.
