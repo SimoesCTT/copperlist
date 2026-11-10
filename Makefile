@@ -3,22 +3,36 @@ CFLAGS ?= -O2 -g -Wall -Wextra -std=c11
 CPPFLAGS += -Iinclude -Ivendor/chipmem/include -Ivendor/blit/include
 LDLIBS += -ldrm -lm -lOpenCL
 
-VENDOR_SRC = $(wildcard vendor/chipmem/src/*.c) \
-             $(wildcard vendor/blit/src/*.c) \
-             src/copper.c
+LIB_SRC = src/copper.c \
+          vendor/chipmem/src/chipmem.c \
+          vendor/blit/src/blit.c \
+          vendor/blit/src/blit_cpu.c \
+          vendor/blit/src/blit_i915.c \
+          vendor/blit/src/blit_cl.c \
+          vendor/blit/src/addr_alloc.c
+LIB_OBJ = $(LIB_SRC:.c=.o)
 
-PROBE = tests/probe_sequence
-TEST  = tests/t_copper
+all: libcopper.a
 
-$(PROBE): tests/probe_sequence.c $(VENDOR_SRC)
-	$(CC) $(CFLAGS) $(CPPFLAGS) tests/probe_sequence.c $(VENDOR_SRC) $(LDLIBS) -o $@
-$(TEST): tests/t_copper.c $(VENDOR_SRC)
-	$(CC) $(CFLAGS) $(CPPFLAGS) tests/t_copper.c $(VENDOR_SRC) $(LDLIBS) -o $@
+libcopper.a: $(LIB_OBJ)
+	$(AR) rcs $@ $^
 
-run-probe: $(PROBE)
-	./$(PROBE)
-check: $(TEST)
-	./$(TEST)
+%.o: %.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+tests/t_copper: tests/t_copper.c libcopper.a
+	$(CC) $(CFLAGS) $(CPPFLAGS) $< -L. -lcopper $(LDLIBS) -o $@
+
+tests/probe_sequence: tests/probe_sequence.c libcopper.a
+	$(CC) $(CFLAGS) $(CPPFLAGS) $< -L. -lcopper $(LDLIBS) -o $@
+
+check: tests/t_copper
+	./tests/t_copper
+
+run-probe: tests/probe_sequence
+	./tests/probe_sequence
+
 clean:
-	rm -f $(PROBE) $(TEST)
-.PHONY: run-probe check clean
+	rm -f $(LIB_OBJ) libcopper.a tests/t_copper tests/probe_sequence
+
+.PHONY: all check run-probe clean
