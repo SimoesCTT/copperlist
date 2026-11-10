@@ -1,0 +1,11 @@
+# build artifacts
+tests/probe_sequence
+tests/t_copper
+*.o
+*.a
+*.so
+
+# editor / OS
+*.swp
+*~
+.DS_Store
