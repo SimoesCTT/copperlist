@@ -1,5 +1,5 @@
 Name:           copperlist
-Version:        0.1.0
+Version:        0.1.2
 Release:        1%{?dist}
 %global debug_package %{nil}
 Summary:        Copper-style trigger-list sequencer for the i915 BLT ring
@@ -58,5 +58,10 @@ install -m 0644 include/copper.h %{buildroot}%{_includedir}/copperlist/
 
 
 %changelog
+* Wed Nov 11 2026 Americo Simoes <amexsimoes@gmail.com> - 0.1.2-1
+- Source0 to /archive/ (Copr cannot fetch a release asset that was
+  never uploaded; the tag-only tarball resolves from the tag alone).
+- Guard %check on copr_projectname (Copr mock has no render node).
+
 * Tue Nov 10 2026 Americo Simoes <amexsimoes@gmail.com> - 0.1.0-1
 - Initial package
