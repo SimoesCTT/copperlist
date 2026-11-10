@@ -57,5 +57,5 @@ install -m 0644 libcopper.a %{buildroot}%{_libdir}/
 
 
 %changelog
-* Tue Nov 11 2026 Americo Simoes <amexsimoes@gmail.com> - 0.1.0-1
+* Tue Nov 11 2025 Americo Simoes <amexsimoes@gmail.com> - 0.1.0-1
 - Initial package
