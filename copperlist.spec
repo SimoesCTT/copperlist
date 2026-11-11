@@ -1,5 +1,5 @@
 Name:           copperlist
-Version:        0.1.4
+Version:        0.1.5
 Release:        1%{?dist}
 %global debug_package %{nil}
 Summary:        Copper-style trigger-list sequencer for the i915 BLT ring
@@ -58,6 +58,13 @@ install -m 0644 include/copper.h %{buildroot}%{_includedir}/copperlist/
 
 
 %changelog
+* Thu Nov 12 2026 Americo Simoes <amexsimoes@gmail.com> - 0.1.5-1
+- Deduplicate exec objects: a buffer that is link i-1's dst and link
+  i's src appeared twice in the exec array, and the duplicate's flags
+  could override the first occurrence's, losing EXEC_OBJECT_WRITE and
+  silently dropping the intermediate write. Fixed. t_copper.c now
+  checks every buffer.
+
 * Wed Nov 11 2026 Americo Simoes <amexsimoes@gmail.com> - 0.1.4-1
 - Spelling: the-level's, status quo's.
 - Escape %%check in older changelog entries.
