@@ -242,3 +242,55 @@ The library is written and the library is proven. The claim is
 narrower than "zero syscalls between links" — it is "one
 EXECBUFFER2 and 2N+1 exec objects per chain instead of N EXECBUFFER2s
 and 3 objects each" — and it is measured, not asserted.
+
+---
+
+## Correction: intermediate writes were silently lost (2026-11-12)
+
+Integration test (pipeline-test: reach + chipmem + copperlist, an
+8-link 2D chain) found that copper_seq_submit built 2N exec objects,
+one src and one dst per link. A buffer that is link i-1's dst and
+link i's src appeared twice in the exec array. On Gen9 the duplicate's
+flags can override the first occurrence's, losing EXEC_OBJECT_WRITE
+and silently dropping the intermediate write. The final buffer of a
+chain was correct by accident; every intermediate buffer was wrong.
+
+t_copper.c only checked the final buffer, so its PASS did not catch
+this. It now checks every buffer in the chain.
+
+Fix: deduplicate by GEM handle, OR EXEC_OBJECT_WRITE across all
+occurrences, rewrite the link offsets to the deduplicated slots before
+the batch is emitted. One object per unique handle instead of 2N.
+
+Measured after the fix (8 links, 50 runs per batch, 0 data
+mismatches, every buffer checked), across four independent batches:
+
+  batch 1: per link 26161 ns, ratio  8.56x
+  batch 2: per link 35852 ns, ratio  6.25x
+  batch 3: per link 18193 ns, ratio 12.31x
+  batch 4: per link 30731 ns, ratio  7.29x
+
+  per-link range: 18193 .. 35852 ns
+  ratio range:    6.25x .. 12.31x
+
+The range is wider than the pre-fix 2.59x-4.99x. The dedup made the
+chain faster on average but the batch-to-batch variance is now a
+larger fraction of a smaller total: the fixed setup cost (one batch
+GEM alloc, one EXECBUFFER2) is the same absolute variance, and the
+denominator it divides into is smaller.
+
+A single batch is a sample. The finding is the range.
+
+The ratio is higher than the 2.59-4.99x reported before the fix
+because the chain itself got faster: fewer exec objects per submit.
+The status-quo baseline is unchanged because blit() never had the
+duplication. As before, a single run is a sample; the range across
+batches is the finding.
+
+## What this changes about the claim
+
+The claim survives, and the measured ratio is higher than the audit
+previously reported. The change is in the implementation, not the
+claim: the chain was doing redundant work (2N objects for N links)
+and the dedup removed it. The earlier numbers were correct
+measurements of a slower implementation.

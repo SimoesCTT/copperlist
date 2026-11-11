@@ -199,6 +199,38 @@ copper_seq_op_t *copper_seq_submit(copper_seq_t *seq, int drm_fd)
                      MAP_SHARED, drm_fd, (off_t)mo.offset);
     if (map == MAP_FAILED) goto err_batch;
 
+    /* Deduplicate by GEM handle. In a chain buf[i] is link i-1's dst
+     * and link i's src, so the same handle appears twice. On Gen9 the
+     * duplicate's flags can override the first occurrence's, losing
+     * EXEC_OBJECT_WRITE and silently dropping the intermediate write.
+     * Pin each handle once, at the first offset seen, with WRITE set
+     * if it is any link's dst, and rewrite the link offsets so the
+     * command stream uses the actual pinned address. */
+    size_t maxobj = 2 * N + 1;
+    struct drm_i915_gem_exec_object2 *objs = calloc(maxobj, sizeof(*objs));
+    if (!objs) goto err_batch;
+    size_t nuniq = 0;
+    for (size_t i = 0; i < N; i++) {
+        for (int side = 0; side < 2; side++) {
+            uint32_t h = side ? seq->links[i].dst_handle
+                              : seq->links[i].src_handle;
+            uint64_t off = side ? seq->links[i].dst_off
+                                : seq->links[i].src_off;
+            size_t k;
+            for (k = 0; k < nuniq; k++)
+                if (objs[k].handle == h) break;
+            if (k == nuniq) {
+                objs[k].handle = h;
+                objs[k].offset = off;
+                objs[k].flags  = EXEC_OBJECT_PINNED |
+                                 EXEC_OBJECT_SUPPORTS_48B_ADDRESS;
+                nuniq++;
+            }
+            if (side) objs[k].flags |= EXEC_OBJECT_WRITE;
+            if (side) seq->links[i].dst_off = objs[k].offset;
+            else      seq->links[i].src_off = objs[k].offset;
+        }
+    }
     uint32_t *p = map;
     for (size_t i = 0; i < N; i++) p = emit_link(p, &seq->links[i]);
     *p++ = 0x05000000u;
@@ -206,28 +238,11 @@ copper_seq_op_t *copper_seq_submit(copper_seq_t *seq, int drm_fd)
     uint32_t batch_len = (uint32_t)((uint8_t *)p - (uint8_t *)map);
     munmap(map, COPPER_BATCH_BYTES);
 
-    /* 2N + 1 exec objects. Every distinct handle gets its own slot;
-     * a src and dst that are the same GEM handle still need separate
-     * objects (different offsets). Deduplicate handles would fail the
-     * BLT ring's read/write domain — do not. */
-    size_t nobj = 2 * N + 1;
-    struct drm_i915_gem_exec_object2 *objs = calloc(nobj, sizeof(*objs));
-    if (!objs) goto err_batch;
-    for (size_t i = 0; i < N; i++) {
-        objs[2*i].handle   = seq->links[i].src_handle;
-        objs[2*i].offset   = seq->links[i].src_off;
-        objs[2*i].flags    = EXEC_OBJECT_PINNED |
-                             EXEC_OBJECT_SUPPORTS_48B_ADDRESS;
-        objs[2*i+1].handle = seq->links[i].dst_handle;
-        objs[2*i+1].offset = seq->links[i].dst_off;
-        objs[2*i+1].flags  = EXEC_OBJECT_PINNED |
-                             EXEC_OBJECT_SUPPORTS_48B_ADDRESS |
-                             EXEC_OBJECT_WRITE;
-    }
-    objs[2*N].handle = create.handle;
-    objs[2*N].offset = COPPER_BATCH_ADDR;
-    objs[2*N].flags  = EXEC_OBJECT_PINNED |
-                       EXEC_OBJECT_SUPPORTS_48B_ADDRESS;
+    size_t nobj = nuniq + 1;
+    objs[nuniq].handle = create.handle;
+    objs[nuniq].offset = COPPER_BATCH_ADDR;
+    objs[nuniq].flags  = EXEC_OBJECT_PINNED |
+                         EXEC_OBJECT_SUPPORTS_48B_ADDRESS;
 
     struct drm_i915_gem_execbuffer2 exec;
     memset(&exec, 0, sizeof(exec));

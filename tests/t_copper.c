@@ -56,10 +56,19 @@ int main(void)
         chipmem_sync(bufs[LINKS], CHIPMEM_ACCESS_ACCEL_WRITE);
         copper_seq_destroy(s);
 
-        int bad = 0;
-        for (int i = 0; i < TOKENS; i++)
-            if (ptrs[LINKS][i] != (uint32_t)(0x1000u + i)) { bad = i; break; }
-        if (bad) { fprintf(stderr, "run %d: mismatch at %d\n", r, bad); return 1; }
+        /* Check every buffer, not just the final one. A chain can
+         * produce a correct final buffer while an intermediate write
+         * is silently lost. */
+        for (int b = 1; b <= LINKS; b++) {
+            int bad = 0;
+            for (int i = 0; i < TOKENS; i++)
+                if (ptrs[b][i] != (uint32_t)(0x1000u + i)) { bad = i; break; }
+            if (bad) {
+                fprintf(stderr, "run %d: buf[%d] mismatch at %d\n",
+                        r, b, bad);
+                return 1;
+            }
+        }
 
         double gap = t1 - t0;
         sum += gap; if (gap > mx) mx = gap;
