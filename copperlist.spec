@@ -1,4 +1,4 @@
-Name:           copperlist-devel
+Name:           copperlist
 Version:        0.1.4
 Release:        1%{?dist}
 %global debug_package %{nil}
@@ -16,7 +16,7 @@ BuildRequires:  OpenCL-ICD-Loader-devel
 
 %description
 copperlist chains N blit copies into one batch GEM and one EXECBUFFER2
-on the Intel i915 BLT ring, replacing the status status quo's one-batch-per-link.
+on the Intel i915 BLT ring, replacing the status quo's one-batch-per-link.
 It is the Amiga Copper's model — a list executed by the engine, not
 re-armed by userspace per step — applied to the AI pipeline layer.
 
@@ -30,7 +30,7 @@ Built on the-level's chipmem and blit, vendored byte-identical.
 
 
 %prep
-%autosetup -n copperlist-%{version}
+%autosetup
 
 
 %build
@@ -50,8 +50,6 @@ install -d %{buildroot}%{_includedir}/copperlist
 install -m 0644 include/copper.h %{buildroot}%{_includedir}/copperlist/
 
 
-Provides:       copperlist = %{version}-%{release}
-
 %files
 %{_includedir}/copperlist
 %license LICENSE
@@ -61,23 +59,14 @@ Provides:       copperlist = %{version}-%{release}
 
 %changelog
 * Wed Nov 11 2026 Americo Simoes <amexsimoes@gmail.com> - 0.1.4-1
-- Rename to copperlist-devel (headers-only; no runtime package to
-  sit above it). Provides: copperlist for compatibility. Mirrors
-  the-level's packaging shape.
-- Escape %%check in older changelog entries (rpmlint
-  macro-in-%changelog warning).
 - Spelling: the-level's, status quo's.
+- Escape %%check in older changelog entries.
 
 * Wed Nov 11 2026 Americo Simoes <amexsimoes@gmail.com> - 0.1.3-1
 - %%check tests for /dev/dri/renderD128 instead of the Copr macro.
-  The old guard fired in Copr but not in fedora-review's mock, where
-  the GPU test ran and failed. The honest condition is "can this
-  buildroot run the test," not "is this Copr."
 
 * Wed Nov 11 2026 Americo Simoes <amexsimoes@gmail.com> - 0.1.2-1
-- Source0 to /archive/ (Copr cannot fetch a release asset that was
-  never uploaded; the tag-only tarball resolves from the tag alone).
-- Guard %%check on copr_projectname (Copr mock has no render node).
+- Source0 to /archive/.
 
 * Tue Nov 10 2026 Americo Simoes <amexsimoes@gmail.com> - 0.1.0-1
 - Initial package
