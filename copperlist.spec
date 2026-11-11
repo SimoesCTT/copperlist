@@ -6,7 +6,7 @@ Summary:        Copper-style trigger-list sequencer for the i915 BLT ring
 
 License:        MIT
 URL:            https://github.com/SimoesCTT/copperlist
-Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
+Source0:        %{url}/archive/v%{version}/copperlist-%{version}.tar.gz
 
 BuildRequires:  gcc
 BuildRequires:  make
@@ -30,7 +30,7 @@ Built on the-level's chipmem and blit, vendored byte-identical.
 
 
 %prep
-%autosetup
+%autosetup -n copperlist-%{version}
 
 
 %build
