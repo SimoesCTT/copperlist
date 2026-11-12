@@ -79,6 +79,22 @@ void copper_seq_op_release(copper_seq_op_t *op);
 /* Free chain. Null-safe. */
 void copper_seq_destroy(copper_seq_t *seq);
 
+/*
+ * LIMITATION (v0.1.5): copper_seq_add assigns each link a distinct
+ * 2 MiB slot (COPPER_SRC_BASE + n * COPPER_SLOT_STRIDE, and the same
+ * for dst), where n is the link index. It does not derive the offset
+ * from the pointer's position within its buffer. Consequence: a chain
+ * works when each link targets a distinct buffer, and does not work
+ * when many links target different regions of the SAME buffer — the
+ * second and later links address 2 MiB past the buffer and their
+ * writes are lost. Found by copper-train, which chains 120 regions of
+ * one 4 MB tensor and observes region 0 correct and every later
+ * region zero at every link count from 2 to 32.
+ *
+ * A fix requires the API to take (buffer, offset) rather than a raw
+ * pointer, so the offset within the buffer is known. That is a v0.2.0
+ * change and is not made here.
+ */
 /* Number of links queued. */
 size_t copper_seq_length(const copper_seq_t *seq);
 
