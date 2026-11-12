@@ -1,5 +1,5 @@
 Name:           copperlist
-Version:        0.1.6
+Version:        0.1.7
 Release:        1%{?dist}
 %global debug_package %{nil}
 Summary:        Copper-style trigger-list sequencer for the i915 BLT ring
