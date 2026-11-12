@@ -1,5 +1,5 @@
 Name:           copperlist
-Version:        0.1.5
+Version:        0.1.6
 Release:        1%{?dist}
 %global debug_package %{nil}
 Summary:        Copper-style trigger-list sequencer for the i915 BLT ring
@@ -58,6 +58,11 @@ install -m 0644 include/copper.h %{buildroot}%{_includedir}/copperlist/
 
 
 %changelog
+* Thu Nov 13 2026 Americo Simoes <amexsimoes@gmail.com> - 0.1.6-1
+- Document limitation: copper_seq_add does not support many regions
+  of one buffer. Chains work for N distinct buffers; they do not work
+  for N tiles of one tensor. Found by copper-train.
+
 * Thu Nov 12 2026 Americo Simoes <amexsimoes@gmail.com> - 0.1.5-1
 - Deduplicate exec objects: a buffer that is link i-1's dst and link
   i's src appeared twice in the exec array, and the duplicate's flags
